@@ -4,17 +4,19 @@ import {
   useFetcher,
   useSearchParams,
 } from '@remix-run/react';
+import { useState } from 'react';
 import { type PropsWithChildren } from 'react';
-import { ArrowUp, BarChart2, Edit, Share } from 'react-feather';
+import { AlertTriangle, ArrowUp, BarChart2, Copy, Edit } from 'react-feather';
 import { match } from 'ts-pattern';
 
 import { ResourceType } from '@oyster/core/resources';
 import {
   cx,
-  getIconButtonCn,
+  Dropdown,
   getTextCn,
   Pill,
   ProfilePicture,
+  Table,
   Text,
 } from '@oyster/ui';
 import {
@@ -283,60 +285,72 @@ function ResourceActionGroup({
   id,
   shareableUri,
 }: Pick<ResourceProps, 'editable' | 'id' | 'shareableUri'>) {
+  const [open, setOpen] = useState<boolean>(false);
   const [searchParams] = useSearchParams();
   const toast = useToast();
   const { trackFromClient } = useMixpanelTracker();
 
-  const buttonClassName = getIconButtonCn({
-    backgroundColor: 'gray-100',
-    backgroundColorOnHover: 'gray-200',
-  });
+  function onClose() {
+    setOpen(false);
+  }
+
+  function onOpen() {
+    setOpen(true);
+  }
 
   return (
     <ul className="flex items-center gap-1">
-      {!!editable && (
-        <li>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                className={buttonClassName}
-                to={{
-                  pathname: generatePath(Route['/resources/:id/edit'], { id }),
-                  search: searchParams.toString(),
-                }}
-              >
-                <Edit />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent>
-              <TooltipText>Edit Resource</TooltipText>
-            </TooltipContent>
-          </Tooltip>
-        </li>
-      )}
-
       <li>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              className={buttonClassName}
-              onClick={() => {
-                navigator.clipboard.writeText(shareableUri);
-                toast({ message: 'Copied URL to clipboard!' });
-                trackFromClient({
-                  event: 'Resource Link Copied',
-                  properties: undefined,
-                });
-              }}
-              type="button"
-            >
-              <Share />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <TooltipText>Copy Resource Link</TooltipText>
-          </TooltipContent>
-        </Tooltip>
+        <Dropdown.Container onClose={onClose}>
+          {open && (
+            <Dropdown>
+              <Dropdown.List>
+                <Dropdown.Item>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareableUri);
+                      toast({ message: 'Copied URL to clipboard!' });
+                      trackFromClient({
+                        event: 'Resource Link Copied',
+                        properties: undefined,
+                      });
+                    }}
+                    type="button"
+                  >
+                    <Copy /> Copy Resource Link
+                  </button>
+                </Dropdown.Item>
+                {!!editable && (
+                  <Dropdown.Item>
+                    <Link
+                      to={{
+                        pathname: generatePath(Route['/resources/:id/edit'], {
+                          id,
+                        }),
+                        search: searchParams.toString(),
+                      }}
+                    >
+                      <Edit /> Edit Resource
+                    </Link>
+                  </Dropdown.Item>
+                )}
+                <Dropdown.Item>
+                  <Link
+                    to={{
+                      pathname: generatePath(Route['/resources'], {
+                        id,
+                      }),
+                    }}
+                  >
+                    <AlertTriangle />
+                    Report Issue
+                  </Link>
+                </Dropdown.Item>
+              </Dropdown.List>
+            </Dropdown>
+          )}
+          <Table.DropdownOpenButton onClick={onOpen} />
+        </Dropdown.Container>
       </li>
     </ul>
   );
